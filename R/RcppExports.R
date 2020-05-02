@@ -5,7 +5,19 @@ earcut_cpp <- function(x, y, holes, numholes) {
     .Call(`_decido_earcut_cpp`, x, y, holes, numholes)
 }
 
-earcut_sfc <- function(sfg) {
-    .Call(`_decido_earcut_sfc`, sfg)
+earcut_sfg <- function(sfg) {
+    .Call(`_decido_earcut_sfg`, sfg)
+}
+
+earcut_sfg2 <- function(sfg) {
+    .Call(`_decido_earcut_sfg2`, sfg)
+}
+
+earcut_sfc <- function(sfc) {
+    .Call(`_decido_earcut_sfc`, sfc)
+}
+
+earcut_sfc2 <- function(sfc) {
+    .Call(`_decido_earcut_sfc2`, sfc)
 }
 

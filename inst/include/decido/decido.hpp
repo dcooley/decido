@@ -133,6 +133,7 @@ typedef std::array< Coord, 2 > Point;
 typedef std::vector< Point > Polygon;
 typedef std::vector< Polygon > Polygons;
 
+
 namespace decido {
 namespace earcut {
 

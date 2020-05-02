@@ -53,11 +53,41 @@ IntegerVector earcut_cpp(NumericVector x, NumericVector y,
 
 
 // [[Rcpp::export]]
-SEXP earcut_sfc( Rcpp::List& sfg ) {
+SEXP earcut_sfg( Rcpp::List& sfg ) {
 
   Polygons polyrings = Rcpp::as< Polygons >( sfg );
 
   std::vector< uint32_t > indices = mapbox::earcut< uint32_t >( polyrings );
   return Rcpp::wrap( indices );
+}
+
+// [[Rcpp::export]]
+SEXP earcut_sfg2( Rcpp::List& sfg ) {
+  std::vector< uint32_t > indices = mapbox::earcut( sfg );
+  return Rcpp::wrap( indices );
+}
+
+// [[Rcpp::export]]
+SEXP earcut_sfc( Rcpp::List& sfc ) {
+  R_xlen_t i;
+  R_xlen_t n = sfc.length();
+  Rcpp::List res( n );
+  for( i = 0; i < n; ++i ) {
+    Rcpp::List sfg = sfc[ i ];
+    res[i] = earcut_sfg( sfg );
+  }
+  return res;
+}
+
+// [[Rcpp::export]]
+SEXP earcut_sfc2( Rcpp::List& sfc ) {
+  R_xlen_t i;
+  R_xlen_t n = sfc.length();
+  Rcpp::List res( n );
+  for( i = 0; i < n; ++i ) {
+    Rcpp::List sfg = sfc[ i ];
+    res[i] = earcut_sfg2( sfg );
+  }
+  return res;
 }
 
