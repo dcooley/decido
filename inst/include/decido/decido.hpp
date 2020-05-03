@@ -139,65 +139,148 @@ typedef std::array< Coord, 2 > Point;
 typedef std::vector< Point > Polygon;
 typedef std::vector< Polygon > Polygons;
 
-namespace decido {
-namespace api {
+template <typename N = uint32_t>
+class Decido : public Earcut {
 
-  inline Rcpp::IntegerVector earcut(
-    Rcpp::NumericVector& x,
-    Rcpp::NumericVector& y,
-    IntegerVector& holes,
-    IntegerVector& numholes
-  ) {
-    // The index type. Defaults to uint32_t, but you can also pass uint16_t if you know that your
-    // data won't have more than 65536 vertices.
-    using N = uint32_t;
-    Polygon poly;
+public:
+  std::vector< double > xcoords;
+  std::vector< double > ycoords;
 
-    int vcount = static_cast <int> (x.length());
-    Point pt;
-    Polygons polyrings;
-    // if (numholes.size())
-    //    Rcout << "numholes[0]:" << numholes[0] << std::endl;
-    int hole_index = 0;
-    for (int ipoint = 0; ipoint < vcount; ipoint++) {
-      pt = {x[ipoint], y[ipoint]};
+};
 
-      // don't add the point if we are starting a new ring
-      if (numholes.size() && numholes[0] > 0) {
-        if (hole_index < holes.size()) {
-          //         throw std::runtime_error("bounds");
-          int ihole = holes[hole_index];
-          if (ipoint == ihole) {
-            // Rprintf("pushback poly %i\n", ipoint + 1);
-            polyrings.push_back(poly);
-            poly.clear();
-            hole_index++;
-          }
-        }
-      }
-      // now add the point
-      poly.push_back(pt);
-    }
 
-    // ensure we catch the last poly ring
-    polyrings.push_back(poly);
+template <typename N> template <typename Polygon>
+void Earcut<N>::operator()(const Polygon& points) {
+  // reset
+  indices.clear();
+  xcoords.clear();
+  ycoords.clear();
+  vertices = 0;
 
-    // Run tessellation
-    // Returns array of indices that refer to the vertices of the input polygon.
-    // Three subsequent indices form a triangle.
-    std::vector<N> indices = mapbox::earcut<N>(polyrings);
-    return Rcpp::wrap( indices );
+  if (points.empty()) return;
+
+  double x;
+  double y;
+  int threshold = 80;
+  std::size_t len = 0;
+
+  for (size_t i = 0; threshold >= 0 && i < points.size(); i++) {
+    threshold -= static_cast<int>(points[i].size());
+    len += points[i].size();
   }
 
-  inline Rcpp::IntegerVector earcut(
+  //estimate size of nodes and indices
+  nodes.reset(len * 3 / 2);
+  indices.reserve(len + points[0].size());
+  xcoords.reserve(len + points[0].size());
+  ycoords.reserve(len + points[0].size());
+
+  Node* outerNode = linkedList(points[0], true);
+  if (!outerNode) return;
+
+  if (points.size() > 1) outerNode = mapbox::detail::eliminateHoles(points, outerNode);
+
+  // if the shape is not too simple, we'll use z-order curve hash later; calculate polygon bbox
+  hashing = threshold < 0;
+  if (hashing) {
+    Node* p = outerNode->next;
+    minX = maxX = outerNode->x;
+    minY = maxY = outerNode->y;
+    do {
+      x = p->x;
+      y = p->y;
+      minX = std::min<double>(minX, x);
+      minY = std::min<double>(minY, y);
+      maxX = std::max<double>(maxX, x);
+      maxY = std::max<double>(maxY, y);
+      p = p->next;
+    } while (p != outerNode);
+
+    // minX, minY and size are later used to transform coords into integers for z-order calculation
+    inv_size = std::max<double>(maxX - minX, maxY - minY);
+    inv_size = inv_size != .0 ? (1. / inv_size) : .0;
+  }
+
+  mapbox::detail::earcutLinked(outerNode);
+
+  nodes.clear();
+}
+
+namespace decido {
+
+  template <typename N = uint32_t, typename Polygon>
+  Rcpp::List earcut(const Polygon& poly) {
+
+    mapbox::detail::Earcut<N> earcut;
+    earcut(poly);
+    //return std::move(earcut.indices);
+    std::vector< double > xcoords = move(earcut.xcoords);
+    std::vector< double > ycoords = move(earcut.ycoords);
+    std::vector< std::vector< double > > xy = { xcoords, ycoords };
+    return Rcpp::wrap( xy );
+  }
+
+namespace api {
+
+  // inline Rcpp::IntegerVector earcut(
+  //   Rcpp::NumericVector& x,
+  //   Rcpp::NumericVector& y,
+  //   IntegerVector& holes,
+  //   IntegerVector& numholes
+  // ) {
+  //   // The index type. Defaults to uint32_t, but you can also pass uint16_t if you know that your
+  //   // data won't have more than 65536 vertices.
+  //   using N = uint32_t;
+  //   Polygon poly;
+  //
+  //   int vcount = static_cast <int> (x.length());
+  //   Point pt;
+  //   Polygons polyrings;
+  //   // if (numholes.size())
+  //   //    Rcout << "numholes[0]:" << numholes[0] << std::endl;
+  //   int hole_index = 0;
+  //   for (int ipoint = 0; ipoint < vcount; ipoint++) {
+  //     pt = {x[ipoint], y[ipoint]};
+  //
+  //     // don't add the point if we are starting a new ring
+  //     if (numholes.size() && numholes[0] > 0) {
+  //       if (hole_index < holes.size()) {
+  //         //         throw std::runtime_error("bounds");
+  //         int ihole = holes[hole_index];
+  //         if (ipoint == ihole) {
+  //           // Rprintf("pushback poly %i\n", ipoint + 1);
+  //           polyrings.push_back(poly);
+  //           poly.clear();
+  //           hole_index++;
+  //         }
+  //       }
+  //     }
+  //     // now add the point
+  //     poly.push_back(pt);
+  //   }
+  //
+  //   // ensure we catch the last poly ring
+  //   polyrings.push_back(poly);
+  //
+  //   // Run tessellation
+  //   // Returns array of indices that refer to the vertices of the input polygon.
+  //   // Three subsequent indices form a triangle.
+  //   std::vector<N> indices = mapbox::earcut<N>(polyrings);
+  //   return Rcpp::wrap( indices );
+  // }
+
+  inline SEXP earcut(
       SEXP& polygon
   ) {
     if( TYPEOF( polygon ) != VECSXP ) {
       Rcpp::stop("decido - expecting a list of matrices");
     }
     Polygons polyrings = Rcpp::as< Polygons >( polygon );
-    std::vector< uint32_t > indices = mapbox::earcut< uint32_t >( polyrings );
-    return Rcpp::wrap( indices );
+    Rcpp::List xy = decido::earcut< double >( polyrings );
+    return xy;
+    //std::vector< uint32_t > indices = mapbox::earcut< uint32_t >( polyrings );
+    //return Rcpp::wrap( indices );
+    //return Rcpp::IntegerVector::create();
   }
 
 } // earcut

@@ -28,6 +28,8 @@ template <typename N = uint32_t>
 class Earcut {
 public:
     std::vector<N> indices;
+    // std::vector< double > xcoords;
+    // std::vector< double > ycoords;
     std::size_t vertices = 0;
 
     template <typename Polygon>
@@ -134,6 +136,8 @@ template <typename N> template <typename Polygon>
 void Earcut<N>::operator()(const Polygon& points) {
     // reset
     indices.clear();
+    // xcoords.clear();
+    // ycoords.clear();
     vertices = 0;
 
     if (points.empty()) return;
@@ -151,6 +155,8 @@ void Earcut<N>::operator()(const Polygon& points) {
     //estimate size of nodes and indices
     nodes.reset(len * 3 / 2);
     indices.reserve(len + points[0].size());
+    // xcoords.reserve(len + points[0].size());
+    // ycoords.reserve(len + points[0].size());
 
     Node* outerNode = linkedList(points[0], true);
     if (!outerNode) return;
@@ -275,6 +281,14 @@ void Earcut<N>::earcutLinked(Node* ear, int pass) {
             indices.emplace_back(ear->i);
             indices.emplace_back(next->i);
 
+            // xcoords.emplace_back(prev->x);
+            // xcoords.emplace_back(ear->x);
+            // xcoords.emplace_back(next->x);
+            //
+            // ycoords.emplace_back(prev->y);
+            // ycoords.emplace_back(ear->y);
+            // ycoords.emplace_back(next->y);
+
             removeNode(ear);
 
             // skipping the next vertice leads to less sliver triangles
@@ -380,6 +394,14 @@ Earcut<N>::cureLocalIntersections(Node* start) {
             indices.emplace_back(a->i);
             indices.emplace_back(p->i);
             indices.emplace_back(b->i);
+
+            // xcoords.emplace_back(a->x);
+            // xcoords.emplace_back(b->x);
+            // xcoords.emplace_back(p->x);
+            //
+            // ycoords.emplace_back(a->y);
+            // ycoords.emplace_back(b->y);
+            // ycoords.emplace_back(p->y);
 
             // remove two nodes involved
             removeNode(p);

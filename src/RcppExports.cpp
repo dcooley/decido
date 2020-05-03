@@ -5,22 +5,8 @@
 
 using namespace Rcpp;
 
-// earcut_cpp
-Rcpp::IntegerVector earcut_cpp(NumericVector x, NumericVector y, IntegerVector holes, IntegerVector numholes);
-RcppExport SEXP _decido_earcut_cpp(SEXP xSEXP, SEXP ySEXP, SEXP holesSEXP, SEXP numholesSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
-    Rcpp::traits::input_parameter< IntegerVector >::type holes(holesSEXP);
-    Rcpp::traits::input_parameter< IntegerVector >::type numholes(numholesSEXP);
-    rcpp_result_gen = Rcpp::wrap(earcut_cpp(x, y, holes, numholes));
-    return rcpp_result_gen;
-END_RCPP
-}
 // earcut_sfg
-Rcpp::IntegerVector earcut_sfg(SEXP& sfg);
+SEXP earcut_sfg(SEXP& sfg);
 RcppExport SEXP _decido_earcut_sfg(SEXP sfgSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -32,7 +18,6 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_decido_earcut_cpp", (DL_FUNC) &_decido_earcut_cpp, 4},
     {"_decido_earcut_sfg", (DL_FUNC) &_decido_earcut_sfg, 1},
     {NULL, NULL, 0}
 };
